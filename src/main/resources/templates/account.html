@@ -1,0 +1,353 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <title>Account Information</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <div th:insert="fragments/head :: jquery"></div>
+    <div th:insert="fragments/head :: bootstrap"></div>
+    <script type="text/javascript">
+        const countryId = '#country';
+        const smsId = '#sms_price';
+        const voiceId = '#voice_price';
+        const errorId = '#error';
+        const msisdnId = '#msisdn';
+        const costId = '#cost';
+        const featuresId = '#features';
+        const ownedNumbersId = '#owned_numbers';
+        let selectedCountry = null;
+
+        function updateOwnedNumbers() {
+            $.getJSON("getOwnedNumbers", data => {
+                for (const number of data) {
+                    $(ownedNumbersId).append(
+                        "<li>"+number.country+" "+number.msisdn +
+                       " ("+number.features.join(", ")+")</li>\n"
+                   );
+                }
+            });
+        }
+
+        $(document).ready(() => {
+            const firstOptionValue = $(countryId+' option:first').val();
+            $(countryId)[0].selectedIndex = 0;
+            $(countryId).change(() => {
+                let lastSelection = selectedCountry;
+                selectedCountry = $(countryId+' option:selected').val();
+                if (selectedCountry != lastSelection && selectedCountry != firstOptionValue) {
+                    $.getJSON("getPricingAndNumberForCountry?cc="+selectedCountry, data => {
+                        if (data.error) {
+                            $(errorId).text(data.error);
+                            $(smsId).text('');
+                            $(voiceId).text('');
+                            $(msisdnId).val('');
+                            $(costId).text('');
+                            $(featuresId).text('');
+                        }
+                        else {
+                            $(errorId).text('');
+                            $(smsId).text("SMS: "+(data.sms ? data.sms : "No pricing available"));
+                            $(voiceId).text("Voice: "+(data.voice ? data.voice : "No pricing available"));
+                            $(msisdnId).val(data.msisdn);
+                            $(costId).text("Cost: €" + data.cost + " per month");
+                            $(featuresId).text("Features: " + data.features);
+                        }
+                    });
+                }
+                else if (selectedCountry == firstOptionValue) {
+                    $(smsId).text('');
+                    $(voiceId).text('');
+                    $(msisdnId).val('');
+                    $(costId).text('');
+                    $(featuresId).text('');
+                }
+            });
+            updateOwnedNumbers();
+        });
+  </script>
+</head>
+<body>
+<a href="/">Home</a><br>
+<a href="https://developer.vonage.com/en/account/overview">Account API overview</a><br>
+<a href="https://developer.vonage.com/en/numbers/overview">Numbers API overview</a><br>
+<hr><br>
+<h3>Balance: <th:block th:text="${accountParams.balance}"/></h3>
+<br>
+<h2>Owned numbers: </h2>
+<ul id="owned_numbers">
+</ul>
+<label for="country">Price for outbound calls & texts to country: </label>
+<form action="#" th:object="${accountParams}" method="post">
+    <br><select class="form-select" id="country" name="country" th:field="*{country}" style="width:340px;">
+        <option th:value="null" th:text="'---Select Country---'"></option>
+        <option th:value="'AF'" th:text="'Afghanistan'"></option>
+        <option th:value="'AX'" th:text="'Aland Islands'"></option>
+        <option th:value="'AL'" th:text="'Albania'"></option>
+        <option th:value="'DZ'" th:text="'Algeria'"></option>
+        <option th:value="'AS'" th:text="'American Samoa'"></option>
+        <option th:value="'AD'" th:text="'Andorra'"></option>
+        <option th:value="'AO'" th:text="'Angola'"></option>
+        <option th:value="'AI'" th:text="'Anguilla'"></option>
+        <option th:value="'AQ'" th:text="'Antarctica'"></option>
+        <option th:value="'AG'" th:text="'Antigua and Barbuda'"></option>
+        <option th:value="'AR'" th:text="'Argentina'"></option>
+        <option th:value="'AM'" th:text="'Armenia'"></option>
+        <option th:value="'AW'" th:text="'Aruba'"></option>
+        <option th:value="'AU'" th:text="'Australia'"></option>
+        <option th:value="'AT'" th:text="'Austria'"></option>
+        <option th:value="'AZ'" th:text="'Azerbaijan'"></option>
+        <option th:value="'BS'" th:text="'Bahamas'"></option>
+        <option th:value="'BH'" th:text="'Bahrain'"></option>
+        <option th:value="'BD'" th:text="'Bangladesh'"></option>
+        <option th:value="'BB'" th:text="'Barbados'"></option>
+        <option th:value="'BY'" th:text="'Belarus'"></option>
+        <option th:value="'BE'" th:text="'Belgium'"></option>
+        <option th:value="'BZ'" th:text="'Belize'"></option>
+        <option th:value="'BJ'" th:text="'Benin'"></option>
+        <option th:value="'BM'" th:text="'Bermuda'"></option>
+        <option th:value="'BT'" th:text="'Bhutan'"></option>
+        <option th:value="'BO'" th:text="'Bolivia'"></option>
+        <option th:value="'BQ'" th:text="'Bonaire, Sint Eustatius and Saba'"></option>
+        <option th:value="'BA'" th:text="'Bosnia and Herzegovina'"></option>
+        <option th:value="'BW'" th:text="'Botswana'"></option>
+        <option th:value="'BV'" th:text="'Bouvet Island'"></option>
+        <option th:value="'BR'" th:text="'Brazil'"></option>
+        <option th:value="'IO'" th:text="'British Indian Ocean Territory'"></option>
+        <option th:value="'BN'" th:text="'Brunei Darussalam'"></option>
+        <option th:value="'BG'" th:text="'Bulgaria'"></option>
+        <option th:value="'BF'" th:text="'Burkina Faso'"></option>
+        <option th:value="'BI'" th:text="'Burundi'"></option>
+        <option th:value="'KH'" th:text="'Cambodia'"></option>
+        <option th:value="'CM'" th:text="'Cameroon'"></option>
+        <option th:value="'CA'" th:text="'Canada'"></option>
+        <option th:value="'CV'" th:text="'Cape Verde'"></option>
+        <option th:value="'KY'" th:text="'Cayman Islands'"></option>
+        <option th:value="'CF'" th:text="'Central African Republic'"></option>
+        <option th:value="'TD'" th:text="'Chad'"></option>
+        <option th:value="'CL'" th:text="'Chile'"></option>
+        <option th:value="'CN'" th:text="'China'"></option>
+        <option th:value="'CX'" th:text="'Christmas Island'"></option>
+        <option th:value="'CC'" th:text="'Cocos (Keeling) Islands'"></option>
+        <option th:value="'CO'" th:text="'Colombia'"></option>
+        <option th:value="'KM'" th:text="'Comoros'"></option>
+        <option th:value="'CG'" th:text="'Congo'"></option>
+        <option th:value="'CD'" th:text="'Congo, Democratic Republic of the Congo'"></option>
+        <option th:value="'CK'" th:text="'Cook Islands'"></option>
+        <option th:value="'CR'" th:text="'Costa Rica'"></option>
+        <option th:value="'CI'" th:text="'Ivory Coast'"></option>
+        <option th:value="'HR'" th:text="'Croatia'"></option>
+        <option th:value="'CU'" th:text="'Cuba'"></option>
+        <option th:value="'CW'" th:text="'Curacao'"></option>
+        <option th:value="'CY'" th:text="'Cyprus'"></option>
+        <option th:value="'CZ'" th:text="'Czech Republic'"></option>
+        <option th:value="'DK'" th:text="'Denmark'"></option>
+        <option th:value="'DJ'" th:text="'Djibouti'"></option>
+        <option th:value="'DM'" th:text="'Dominica'"></option>
+        <option th:value="'DO'" th:text="'Dominican Republic'"></option>
+        <option th:value="'EC'" th:text="'Ecuador'"></option>
+        <option th:value="'EG'" th:text="'Egypt'"></option>
+        <option th:value="'SV'" th:text="'El Salvador'"></option>
+        <option th:value="'GQ'" th:text="'Equatorial Guinea'"></option>
+        <option th:value="'ER'" th:text="'Eritrea'"></option>
+        <option th:value="'EE'" th:text="'Estonia'"></option>
+        <option th:value="'ET'" th:text="'Ethiopia'"></option>
+        <option th:value="'FK'" th:text="'Falkland Islands (Malvinas)'"></option>
+        <option th:value="'FO'" th:text="'Faroe Islands'"></option>
+        <option th:value="'FJ'" th:text="'Fiji'"></option>
+        <option th:value="'FI'" th:text="'Finland'"></option>
+        <option th:value="'FR'" th:text="'France'"></option>
+        <option th:value="'GF'" th:text="'French Guiana'"></option>
+        <option th:value="'PF'" th:text="'French Polynesia'"></option>
+        <option th:value="'TF'" th:text="'French Southern Territories'"></option>
+        <option th:value="'GA'" th:text="'Gabon'"></option>
+        <option th:value="'GM'" th:text="'Gambia'"></option>
+        <option th:value="'GE'" th:text="'Georgia'"></option>
+        <option th:value="'DE'" th:text="'Germany'"></option>
+        <option th:value="'GH'" th:text="'Ghana'"></option>
+        <option th:value="'GI'" th:text="'Gibraltar'"></option>
+        <option th:value="'GR'" th:text="'Greece'"></option>
+        <option th:value="'GL'" th:text="'Greenland'"></option>
+        <option th:value="'GD'" th:text="'Grenada'"></option>
+        <option th:value="'GP'" th:text="'Guadeloupe'"></option>
+        <option th:value="'GU'" th:text="'Guam'"></option>
+        <option th:value="'GT'" th:text="'Guatemala'"></option>
+        <option th:value="'GG'" th:text="'Guernsey'"></option>
+        <option th:value="'GN'" th:text="'Guinea'"></option>
+        <option th:value="'GW'" th:text="'Guinea-Bissau'"></option>
+        <option th:value="'GY'" th:text="'Guyana'"></option>
+        <option th:value="'HT'" th:text="'Haiti'"></option>
+        <option th:value="'HM'" th:text="'Heard Island and Mcdonald Islands'"></option>
+        <option th:value="'VA'" th:text="'Vatican'"></option>
+        <option th:value="'HN'" th:text="'Honduras'"></option>
+        <option th:value="'HK'" th:text="'Hong Kong'"></option>
+        <option th:value="'HU'" th:text="'Hungary'"></option>
+        <option th:value="'IS'" th:text="'Iceland'"></option>
+        <option th:value="'IN'" th:text="'India'"></option>
+        <option th:value="'ID'" th:text="'Indonesia'"></option>
+        <option th:value="'IR'" th:text="'Iran, Islamic Republic of'"></option>
+        <option th:value="'IQ'" th:text="'Iraq'"></option>
+        <option th:value="'IE'" th:text="'Ireland'"></option>
+        <option th:value="'IM'" th:text="'Isle of Man'"></option>
+        <option th:value="'IL'" th:text="'Israel'"></option>
+        <option th:value="'IT'" th:text="'Italy'"></option>
+        <option th:value="'JM'" th:text="'Jamaica'"></option>
+        <option th:value="'JP'" th:text="'Japan'"></option>
+        <option th:value="'JE'" th:text="'Jersey'"></option>
+        <option th:value="'JO'" th:text="'Jordan'"></option>
+        <option th:value="'KZ'" th:text="'Kazakhstan'"></option>
+        <option th:value="'KE'" th:text="'Kenya'"></option>
+        <option th:value="'KI'" th:text="'Kiribati'"></option>
+        <option th:value="'KR'" th:text="'South Korea'"></option>
+        <option th:value="'XK'" th:text="'Kosovo'"></option>
+        <option th:value="'KW'" th:text="'Kuwait'"></option>
+        <option th:value="'KG'" th:text="'Kyrgyzstan'"></option>
+        <option th:value="'LA'" th:text="'Lao'"></option>
+        <option th:value="'LV'" th:text="'Latvia'"></option>
+        <option th:value="'LB'" th:text="'Lebanon'"></option>
+        <option th:value="'LS'" th:text="'Lesotho'"></option>
+        <option th:value="'LR'" th:text="'Liberia'"></option>
+        <option th:value="'LY'" th:text="'Libyan Arab Jamahiriya'"></option>
+        <option th:value="'LI'" th:text="'Liechtenstein'"></option>
+        <option th:value="'LT'" th:text="'Lithuania'"></option>
+        <option th:value="'LU'" th:text="'Luxembourg'"></option>
+        <option th:value="'MO'" th:text="'Macao'"></option>
+        <option th:value="'MK'" th:text="'Macedonia, the Former Yugoslav Republic of'"></option>
+        <option th:value="'MG'" th:text="'Madagascar'"></option>
+        <option th:value="'MW'" th:text="'Malawi'"></option>
+        <option th:value="'MY'" th:text="'Malaysia'"></option>
+        <option th:value="'MV'" th:text="'Maldives'"></option>
+        <option th:value="'ML'" th:text="'Mali'"></option>
+        <option th:value="'MT'" th:text="'Malta'"></option>
+        <option th:value="'MH'" th:text="'Marshall Islands'"></option>
+        <option th:value="'MQ'" th:text="'Martinique'"></option>
+        <option th:value="'MR'" th:text="'Mauritania'"></option>
+        <option th:value="'MU'" th:text="'Mauritius'"></option>
+        <option th:value="'YT'" th:text="'Mayotte'"></option>
+        <option th:value="'MX'" th:text="'Mexico'"></option>
+        <option th:value="'FM'" th:text="'Micronesia'"></option>
+        <option th:value="'MD'" th:text="'Moldova'"></option>
+        <option th:value="'MC'" th:text="'Monaco'"></option>
+        <option th:value="'MN'" th:text="'Mongolia'"></option>
+        <option th:value="'ME'" th:text="'Montenegro'"></option>
+        <option th:value="'MS'" th:text="'Montserrat'"></option>
+        <option th:value="'MA'" th:text="'Morocco'"></option>
+        <option th:value="'MZ'" th:text="'Mozambique'"></option>
+        <option th:value="'MM'" th:text="'Myanmar'"></option>
+        <option th:value="'NA'" th:text="'Namibia'"></option>
+        <option th:value="'NR'" th:text="'Nauru'"></option>
+        <option th:value="'NP'" th:text="'Nepal'"></option>
+        <option th:value="'NL'" th:text="'Netherlands'"></option>
+        <option th:value="'AN'" th:text="'Netherlands Antilles'"></option>
+        <option th:value="'NC'" th:text="'New Caledonia'"></option>
+        <option th:value="'NZ'" th:text="'New Zealand'"></option>
+        <option th:value="'NI'" th:text="'Nicaragua'"></option>
+        <option th:value="'NE'" th:text="'Niger'"></option>
+        <option th:value="'NG'" th:text="'Nigeria'"></option>
+        <option th:value="'NU'" th:text="'Niue'"></option>
+        <option th:value="'NF'" th:text="'Norfolk Island'"></option>
+        <option th:value="'MP'" th:text="'Northern Mariana Islands'"></option>
+        <option th:value="'NO'" th:text="'Norway'"></option>
+        <option th:value="'OM'" th:text="'Oman'"></option>
+        <option th:value="'PK'" th:text="'Pakistan'"></option>
+        <option th:value="'PW'" th:text="'Palau'"></option>
+        <option th:value="'PA'" th:text="'Panama'"></option>
+        <option th:value="'PG'" th:text="'Papua New Guinea'"></option>
+        <option th:value="'PY'" th:text="'Paraguay'"></option>
+        <option th:value="'PE'" th:text="'Peru'"></option>
+        <option th:value="'PH'" th:text="'Philippines'"></option>
+        <option th:value="'PN'" th:text="'Pitcairn'"></option>
+        <option th:value="'PL'" th:text="'Poland'"></option>
+        <option th:value="'PT'" th:text="'Portugal'"></option>
+        <option th:value="'PR'" th:text="'Puerto Rico'"></option>
+        <option th:value="'QA'" th:text="'Qatar'"></option>
+        <option th:value="'RE'" th:text="'Reunion'"></option>
+        <option th:value="'RO'" th:text="'Romania'"></option>
+        <option th:value="'RU'" th:text="'Russian Federation'"></option>
+        <option th:value="'RW'" th:text="'Rwanda'"></option>
+        <option th:value="'BL'" th:text="'Saint Barthelemy'"></option>
+        <option th:value="'SH'" th:text="'Saint Helena'"></option>
+        <option th:value="'KN'" th:text="'Saint Kitts and Nevis'"></option>
+        <option th:value="'LC'" th:text="'Saint Lucia'"></option>
+        <option th:value="'MF'" th:text="'Saint Martin'"></option>
+        <option th:value="'PM'" th:text="'Saint Pierre and Miquelon'"></option>
+        <option th:value="'VC'" th:text="'Saint Vincent and the Grenadines'"></option>
+        <option th:value="'WS'" th:text="'Samoa'"></option>
+        <option th:value="'SM'" th:text="'San Marino'"></option>
+        <option th:value="'ST'" th:text="'Sao Tome and Principe'"></option>
+        <option th:value="'SA'" th:text="'Saudi Arabia'"></option>
+        <option th:value="'SN'" th:text="'Senegal'"></option>
+        <option th:value="'RS'" th:text="'Serbia'"></option>
+        <option th:value="'CS'" th:text="'Serbia and Montenegro'"></option>
+        <option th:value="'SC'" th:text="'Seychelles'"></option>
+        <option th:value="'SL'" th:text="'Sierra Leone'"></option>
+        <option th:value="'SG'" th:text="'Singapore'"></option>
+        <option th:value="'SX'" th:text="'Sint Maarten'"></option>
+        <option th:value="'SK'" th:text="'Slovakia'"></option>
+        <option th:value="'SI'" th:text="'Slovenia'"></option>
+        <option th:value="'SB'" th:text="'Solomon Islands'"></option>
+        <option th:value="'SO'" th:text="'Somalia'"></option>
+        <option th:value="'ZA'" th:text="'South Africa'"></option>
+        <option th:value="'GS'" th:text="'South Georgia and the South Sandwich Islands'"></option>
+        <option th:value="'SS'" th:text="'South Sudan'"></option>
+        <option th:value="'ES'" th:text="'Spain'"></option>
+        <option th:value="'LK'" th:text="'Sri Lanka'"></option>
+        <option th:value="'SD'" th:text="'Sudan'"></option>
+        <option th:value="'SR'" th:text="'Suriname'"></option>
+        <option th:value="'SJ'" th:text="'Svalbard and Jan Mayen'"></option>
+        <option th:value="'SZ'" th:text="'Swaziland'"></option>
+        <option th:value="'SE'" th:text="'Sweden'"></option>
+        <option th:value="'CH'" th:text="'Switzerland'"></option>
+        <option th:value="'SY'" th:text="'Syrian Arab Republic'"></option>
+        <option th:value="'TW'" th:text="'Taiwan, Province of China'"></option>
+        <option th:value="'TJ'" th:text="'Tajikistan'"></option>
+        <option th:value="'TZ'" th:text="'Tanzania, United Republic of'"></option>
+        <option th:value="'TH'" th:text="'Thailand'"></option>
+        <option th:value="'TL'" th:text="'Timor-Leste'"></option>
+        <option th:value="'TG'" th:text="'Togo'"></option>
+        <option th:value="'TK'" th:text="'Tokelau'"></option>
+        <option th:value="'TO'" th:text="'Tonga'"></option>
+        <option th:value="'TT'" th:text="'Trinidad and Tobago'"></option>
+        <option th:value="'TN'" th:text="'Tunisia'"></option>
+        <option th:value="'TR'" th:text="'Turkey'"></option>
+        <option th:value="'TM'" th:text="'Turkmenistan'"></option>
+        <option th:value="'TC'" th:text="'Turks and Caicos Islands'"></option>
+        <option th:value="'TV'" th:text="'Tuvalu'"></option>
+        <option th:value="'UG'" th:text="'Uganda'"></option>
+        <option th:value="'UA'" th:text="'Ukraine'"></option>
+        <option th:value="'AE'" th:text="'United Arab Emirates'"></option>
+        <option th:value="'GB'" th:text="'United Kingdom'"></option>
+        <option th:value="'US'" th:text="'United States'"></option>
+        <option th:value="'UM'" th:text="'United States Minor Outlying Islands'"></option>
+        <option th:value="'UY'" th:text="'Uruguay'"></option>
+        <option th:value="'UZ'" th:text="'Uzbekistan'"></option>
+        <option th:value="'VU'" th:text="'Vanuatu'"></option>
+        <option th:value="'VE'" th:text="'Venezuela'"></option>
+        <option th:value="'VN'" th:text="'Viet Nam'"></option>
+        <option th:value="'VG'" th:text="'Virgin Islands, British'"></option>
+        <option th:value="'VI'" th:text="'Virgin Islands, U.s.'"></option>
+        <option th:value="'WF'" th:text="'Wallis and Futuna'"></option>
+        <option th:value="'EH'" th:text="'Western Sahara'"></option>
+        <option th:value="'YE'" th:text="'Yemen'"></option>
+        <option th:value="'ZM'" th:text="'Zambia'"></option>
+        <option th:value="'ZW'" th:text="'Zimbabwe'"></option>
+    </select><br>
+    <h3 id="error"></h3>
+    <h4 id="sms_price"></h4>
+    <h4 id="voice_price"></h4>
+    <hr><br>
+    <p>Number: <input type="tel" id="msisdn" th:field="*{msisdn}"></p>
+    <p id="cost"></p>
+    <p id="features"></p>
+    <input type="submit" value="Buy Number" th:formaction="@{/buyNumber}">
+    <input type="submit" value="Cancel Number" th:formaction="@{/cancelNumber}">
+    <input type="submit" value="Lookup Details" th:formaction="@{/numberInsight}">
+</form>
+<br>
+<h2 th:text="${accountParams.status}"></h2>
+<h4 th:text="${accountParams.currentCarrier}"></h4>
+<h4 th:text="${accountParams.originalCarrier}"></h4>
+<h4 th:text="${accountParams.ported}"></h4>
+<h4 th:text="${accountParams.callerType}"></h4>
+<h4 th:text="${accountParams.callerName}"></h4>
+<hr>
+</body>
+</html>

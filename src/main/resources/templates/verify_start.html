@@ -1,0 +1,177 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <title>Send a verification</title>
+    <div th:insert="~{fragments/head :: preamble}"></div>
+    <script>
+        function updateVerifySnippet() {
+            const fromNumberDiv = $('#fromNumber-div');
+            const emailDiv = $('#email-div');
+            const numberDiv = $('#number-div');
+            const codeLengthDiv = $('#codeLength-div');
+
+            const selectedChannel = $('#selectedChannel option:selected').val()
+            const brand = $('#brand').val();
+            const toNumber = $('#toNumber').val();
+            const toEmail = $('#toEmail').val();
+            const fromNumber = $('#fromNumber').val();
+            const fromEmail = $('#fromEmail').val();
+            const codeless = selectedChannel == "WHATSAPP_INTERACTIVE" || selectedChannel == "SILENT_AUTH";
+            const codeLength = $('#codeLength').val();
+
+            const workflow = (() => {
+                switch (selectedChannel) {
+                    case 'VOICE': return `new VoiceWorkflow("${toNumber}")`;
+                    case 'EMAIL': return `new EmailWorkflow("${toEmail}"${fromEmail ? ', "'+fromEmail+'"' : ''})`;
+                    case 'SMS': return fromNumber ?
+                        `SmsWorkflow.builder("${toNumber}").from("${fromNumber}").build()` :
+                        `new SmsWorkflow("${toNumber}")`;
+                    case 'WHATSAPP': return `new WhatsappWorkflow("${toNumber}"${fromNumber ? ', "'+fromNumber+'"' : ''})`;
+                    case 'WHATSAPP_INTERACTIVE': return `new WhatsappCodelessWorkflow("${toNumber}", "${fromNumber}")`
+                    case 'SILENT_AUTH': return `new SilentAuthWorkflow("${toNumber}")`;
+                }
+            })();
+
+            if (codeless) {
+                codeLengthDiv.hide();
+            }
+            else {
+                codeLengthDiv.show();
+            }
+            if (selectedChannel.startsWith("WHATSAPP") || selectedChannel == "SMS") {
+                fromNumberDiv.show();
+            }
+            else {
+                fromNumberDiv.hide();
+            }
+
+            if (selectedChannel == "EMAIL") {
+                emailDiv.show();
+                numberDiv.hide();
+            }
+            else {
+                emailDiv.hide();
+                numberDiv.show();
+            }
+
+            let additionalBuilderProps = '';
+            if (!codeless && codeLength) {
+                const indent = "\n        ";
+                additionalBuilderProps += indent + `.codeLength(${codeLength})`;
+            }
+
+            updateSnippet(`
+var response = client.getVerify2Client().sendVerification(
+    VerificationRequest.builder()
+        .brand("${brand}")
+        .addWorkflow(${workflow})${additionalBuilderProps}
+        .build()
+);
+`           );
+        }
+
+        $(document).ready(() => {
+            updateVerifySnippet();
+            $('#selectedChannel, #brand, #codeLength, #toNumber, #fromNumber, #toEmail, #fromEmail')
+                .change(() => updateVerifySnippet());
+        });
+    </script>
+</head>
+<body>
+<a href="/">Home</a><br>
+<a href="https://developer.vonage.com/en/verify/overview">Verify API overview</a><br>
+<hr><br>
+<div class="flex">
+    <div class="w-1/3 p-4">
+        <form class="w-full max-w-sm" action="#" th:action="@{/postVerificationRequest}" th:object="${verifyParams}" method="post">
+            <div id="brand-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="brand" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        Brand name:
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <input type="text" th:field="*{brand}" id="brand" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                </div>
+            </div>
+            <div id="selectedChannel-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="selectedChannel" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        Channel:
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <select th:field="*{selectedChannel}" id="selectedChannel" class="outline-none bg-gray-50 border border-gray-300 text-gray-900 text-m rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                        <option value="SMS" selected>SMS</option>
+                        <option value="VOICE">Voice</option>
+                        <option value="EMAIL">Email</option>
+                        <option value="SILENT_AUTH">Silent Auth</option>
+                        <option value="WHATSAPP">WhatsApp</option>
+                        <option value="WHATSAPP_INTERACTIVE">WhatsApp Codeless</option>
+                    </select>
+                </div>
+            </div>
+            <div id="number-div">
+                <div id="toNumber-div" class="md:flex md:items-center mb-6">
+                    <div class="md:w-1/3">
+                        <label for="toNumber" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                            To:
+                        </label>
+                    </div>
+                    <div class="md:w-2/3">
+                        <input type="tel" minlength="5" maxlength="15" th:field="*{toNumber}" id="toNumber" placeholder="447900000001" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                    </div>
+                </div>
+                <div id="fromNumber-div" class="md:flex md:items-center mb-6">
+                    <div class="md:w-1/3">
+                        <label for="fromNumber" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                            From:
+                        </label>
+                    </div>
+                    <div class="md:w-2/3">
+                        <input type="tel" minlength="5" maxlength="15" th:field="*{fromNumber}" id="fromNumber" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                    </div>
+                </div>
+            </div>
+            <div id="email-div">
+                <div id="toEmail-div" class="md:flex md:items-center mb-6">
+                    <div class="md:w-1/3">
+                        <label for="toEmail" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                            To:
+                        </label>
+                    </div>
+                    <div class="md:w-2/3">
+                        <input type="email" minlength="6" maxlength="320" th:field="*{toEmail}" id="toEmail" placeholder="email@example.org" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                    </div>
+                </div>
+                <div id="fromEmail-div" class="md:flex md:items-center mb-6">
+                    <div class="md:w-1/3">
+                        <label for="fromEmail" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                            From:
+                        </label>
+                    </div>
+                    <div class="md:w-2/3">
+                        <input type="email" minlength="6" maxlength="320" th:field="*{fromEmail}" id="fromEmail" placeholder="Advanced feature" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                    </div>
+                </div>
+            </div>
+            <div id="codeLength-div" class="md:flex md:items-center">
+                <div class="md:w-1/3">
+                    <label for="codeLength" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        Code length:
+                    </label>
+                </div>
+                <div class="md:w-2/3 flex flex-row h-10 rounded-lg relative bg-transparent mt-1 custom-number-input">
+                    <input type="number" min="4" max="10" th:field="*{codeLength}" id="codeLength" class="bg-gray-200 border-2 border-gray-200 rounded py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500 outline-none focus:outline-none text-center bg-gray-300 font-semibold text-md hover:text-black focus:text-black md:text-basecursor-default flex items-center text-gray-700 outline-none"/>
+                </div>
+            </div>
+            <div id="submit-div" class="md:w-2/3 float-right">
+                <input type="submit" value="Send" class="float-right mb-8 mr-1 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded">
+            </div>
+        </form>
+    </div>
+    <div th:insert="~{fragments/head :: java-code-snippet}"></div>
+</div>
+<hr>
+</body>
+</html>

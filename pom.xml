@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.vonage</groupId>
+    <artifactId>sample-serversdk-java-springboot</artifactId>
+    <version>1.1.2</version>
+
+    <name>Vonage Java Server SDK SpringBoot Demo App</name>
+    <description>Interactive demo application for the Vonage Java SDK and Cloud Runtime.</description>
+    <url>https://github.com/Vonage-Community/sample-serversdk-java-springboot</url>
+    <organization>
+        <name>Vonage Community</name>
+        <url>https://developer.vonage.com</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>${project.url}/blob/main/LICENCE.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>devrel</id>
+            <name>Vonage DevRel</name>
+            <email>devrel@vonage.com</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <developerConnection>scm:git@github.com:Vonage-Community/sample-serversdk-java-springboot</developerConnection>
+        <url>${project.url}</url>
+    </scm>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>${project.url}/issues</url>
+    </issueManagement>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+    </parent>
+
+    <properties>
+        <exec.mainClass>com.vonage.sample.serversdk.springboot.Application</exec.mainClass>
+        <java.version>17</java.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.vonage</groupId>
+            <artifactId>server-sdk</artifactId>
+            <version>8.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <defaultGoal>spring-boot:run</defaultGoal>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>debug</id>
+                        <configuration>
+                            <jvmArguments>
+                                -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+                            </jvmArguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>3.6.3</version>
+                                </requireMavenVersion>
+                                <requireJavaVersion>
+                                    <version>${java.version}</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${exec.mainClass}</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

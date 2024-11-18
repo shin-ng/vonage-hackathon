@@ -1,0 +1,322 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <title>Send multimedia message</title>
+    <div th:insert="~{fragments/head :: preamble}"></div>
+    <script type="text/javascript">
+        let sandboxNumbers = null;
+        let selectedChannel = null;
+        let sandboxChecked = null;
+        $.getJSON("getSandboxNumbers", data => {sandboxNumbers = data;});
+        const msgChannelId = '#msgChannel';
+        const sandboxId = '#sandbox';
+        const toId = '#to';
+        const fromId = '#from';
+        const textId = '#text';
+        const urlId = '#url';
+        const msgTypeId = '#msgType';
+        const textDivId = '#text-div';
+        const urlDivId = '#url-div';
+        const locationDivId = '#location-div';
+
+        const populateFromIfSandbox = function() {
+            let lastSandboxChecked = sandboxChecked;
+            if ((sandboxChecked = $(sandboxId).prop('checked')) && sandboxNumbers) {
+                let number = sandboxNumbers[selectedChannel];
+                $(fromId).val(number ? number : '');
+            }
+            if (lastSandboxChecked && !sandboxChecked) {
+                $(fromId).val('');
+            }
+        };
+
+        function getSelectedChannel() {
+            return $(msgChannelId+' option:selected').val();
+        }
+
+        function getSelectedMessageType() {
+            const selected = $(msgTypeId+' option:selected').val();
+            return selected ? selected : "TEXT";
+        }
+
+        function setTextLabel(value) {
+            $('#text-label').text(value + ": ");
+        }
+
+        const populateMessageTypes = function() {
+            let lastSelection = selectedChannel;
+            selectedChannel = getSelectedChannel();
+            if (lastSelection != selectedChannel) {
+                $.getJSON("getMessageTypes?channel="+selectedChannel, data => {
+                    let html = '';
+                    for (let msgType of data) {
+                        let displayName = enumToCapitalCase(msgType);
+                        html += '<option value="'+msgType+'">'+displayName+'</option>\n';
+                    }
+                    $(msgTypeId).html(html);
+                });
+            }
+            populateFromIfSandbox();
+            updateShownElements();
+        };
+
+        const updateShownElements = function() {
+            const msgTypeVal = getSelectedMessageType();
+            const selectedChannel = getSelectedChannel();
+            const msgTypeDiv = $(msgTypeId+'-div');
+            const sandboxDiv = $(sandboxId+'-div');
+            const urlDiv = $(urlDivId);
+            const textDiv = $(textDivId);
+            const locationDiv = $(locationDivId);
+
+            locationDiv.hide();
+            setTextLabel("Text");
+
+            if (selectedChannel == "SMS" || selectedChannel == "MMS") {
+                $(sandboxId).prop('checked', false);
+                sandboxDiv.hide();
+            }
+            else {
+                sandboxDiv.show();
+            }
+
+            if (selectedChannel == "SMS") {
+                msgTypeDiv.hide();
+            }
+            else {
+                msgTypeDiv.show();
+            }
+
+            if (msgTypeVal == "TEXT" || msgTypeVal == "LOCATION" || msgTypeVal == "REACTION") {
+                textDiv.show();
+                urlDiv.hide();
+                if (msgTypeVal == "LOCATION") {
+                    setTextLabel("Name");
+                    locationDiv.show();
+                }
+                else if (msgTypeVal == "REACTION") {
+                    setTextLabel("Emoji");
+                }
+            }
+            else {
+                urlDiv.show();
+                if (selectedChannel == "VIBER" || selectedChannel == "MESSENGER" || selectedChannel == "RCS" ||
+                   (selectedChannel == "WHATSAPP" && msgTypeVal == "AUDIO")
+                ) {
+                    textDiv.hide();
+                }
+                else {
+                    setTextLabel(msgTypeVal == "STICKER" ? "Sticker ID" : "Caption");
+                }
+            }
+
+            updateMessageSnippet(selectedChannel, msgTypeVal);
+        };
+
+        function setStatus(messageId, timeout) {
+            const query = "getMessageStatusUpdate?timeout="+timeout+"&messageId="+messageId;
+            $.getJSON(query, data => {
+                console.log(data);
+                $('#status').text(data.text);
+            });
+        }
+
+        function setInbound(messageId, timeout) {
+            const query = "getInboundMessage?timeout="+timeout+"&messageId="+messageId;
+            $.getJSON(query, data => {
+                console.log(data);
+                $('#inbound').text(data.text);
+            });
+        }
+
+        const updateMessageSnippet = function (channel, msgType) {
+            const reqType = enumToCapitalCase(channel) + enumToCapitalCase(msgType);
+            const to = $(toId).val();
+            const from = $(fromId).val();
+            const text = $(textId).val();
+            const url = $(urlId).val();
+            const hasUrl = $(urlDivId).is(":visible");
+            const hasText = $(textDivId).is(":visible");
+            const hasLocation = $(locationDivId).is(":visible");
+
+            let indent = "\n        ";
+            let mainPart = "";
+
+            if (hasUrl) {
+                mainPart += '.url("'+url+'")';
+            }
+            if (hasText) {
+                if (hasUrl) {
+                    mainPart += indent + '.'+(msgType == "STICKER" ? 'id' : 'caption');
+                }
+                else {
+                    mainPart += hasLocation ? '.name' : '.text';
+                }
+                mainPart += '("'+text+'")';
+            }
+            if (hasLocation) {
+                const address = $('#address').val();
+                const latitude = $('#latitude').val();
+                const longitude = $('#longitude').val();
+                mainPart += indent + '.latitude('+latitude+')'+indent+'.longitude('+longitude+')';
+                if (address) {
+                    mainPart += indent + '.address("'+address+'")';
+                }
+            }
+
+            return updateSnippet(
+`var response = client.getMessagesClient().sendMessage(
+    ${reqType}Request.builder()
+        .to("${to}")
+        .from("${from}")
+        ${mainPart}
+        .build()
+);
+System.out.println(response.getMessageUuid());`
+            );
+        }
+
+        $(document).ready(() => {
+            populateMessageTypes();
+            $(msgChannelId+', '+sandboxId).change(populateMessageTypes);
+            $('#form').change(updateShownElements);
+
+            const messageId = $('#messageId').text();
+            if (messageId) {
+                setStatus(messageId, 2000);
+                setInbound(messageId, 5000);
+            }
+        });
+    </script>
+</head>
+<body>
+<a href="/">Home</a><br>
+<a href="https://developer.vonage.com/en/messages/overview">Messages API overview</a><br>
+<hr><br>
+<div class="flex">
+    <div class="w-1/3 p-4">
+        <form id="form" th:action="@{/sendMessage}" th:object="${messageParams}" method="post">
+            <div id="channel-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="msgChannel" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        Channel:
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <select id="msgChannel" th:field="*{selectedChannel}" class="outline-none bg-gray-50 border border-gray-300 text-gray-900 text-m rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                        <option value="SMS">SMS</option>
+                        <option value="MMS">MMS</option>
+                        <option value="RCS">RCS</option>
+                        <option value="WHATSAPP">WhatsApp</option>
+                        <option value="VIBER">Viber</option>
+                        <option value="MESSENGER">Messenger</option>
+                    </select>
+                </div>
+            </div>
+            <div id="msgType-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="msgType" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        Media type:
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <select id="msgType" th:field="*{selectedType}" class="outline-none bg-gray-50 border border-gray-300 text-gray-900 text-m rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></select>
+                </div>
+            </div>
+            <div id="sandbox-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="sandbox" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        Sandbox:
+                    </label>
+                </div>
+                <div class="md:w-1/3">
+                    <input type="checkbox" id="sandbox" th:field="*{sandbox}" checked class="float:left"/>
+                </div>
+            </div>
+            <div id="to-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="to" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        To:
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <input type="tel" minlength="5" maxlength="50" th:field="*{to}" id="to" placeholder="447900000001" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                </div>
+            </div>
+            <div id="from-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="from" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        From:
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <input type="text" minlength="2" maxlength="50" th:field="*{from}" id="from" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                </div>
+            </div>
+            <div id="text-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label id="text-label" for="text" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <input type="text" th:field="*{text}" id="text" maxlength="1000" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                </div>
+            </div>
+            <div id="url-div" class="md:flex md:items-center mb-6">
+                <div class="md:w-1/3">
+                    <label for="url" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                        URL:
+                    </label>
+                </div>
+                <div class="md:w-2/3">
+                    <input type="url" th:field="*{url}" id="url" maxlength="2000" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                </div>
+            </div>
+            <div id="location-div">
+                <div id="address-div" class="md:flex md:items-center mb-6">
+                    <div class="md:w-1/3">
+                        <label for="address" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                            Address:
+                        </label>
+                    </div>
+                    <div class="md:w-2/3">
+                        <input type="text" th:field="*{address}" id="address" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                    </div>
+                </div>
+                <div id="lat-div" class="md:flex md:items-center mb-6">
+                    <div class="md:w-1/3">
+                        <label for="latitude" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                            Latitude:
+                        </label>
+                    </div>
+                    <div class="md:w-2/3">
+                        <input type="number" step="any" min="-90" max="90" th:field="*{latitude}" id="latitude" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                    </div>
+                </div>
+                <div id="long-div" class="md:flex md:items-center mb-6">
+                    <div class="md:w-1/3">
+                        <label for="latitude" class="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4">
+                            Longitude:
+                        </label>
+                    </div>
+                    <div class="md:w-2/3">
+                        <input type="number" step="any" min="-180" max="180" th:field="*{longitude}" id="longitude" class="bg-gray-200 border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"/>
+                    </div>
+                </div>
+            </div>
+            <div id="submit-div" class="md:w-2/3 float-right">
+                <input type="submit" value="Send" class="float-right mb-8 mr-1 shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded">
+            </div>
+        </form>
+    </div>
+    <div th:insert="~{fragments/head :: java-code-snippet}"></div>
+</div>
+<hr><br>
+<h3 th:text="${result}"></h3>
+<h3 id="messageId" th:text="${messageParams.messageId}"></h3>
+<p id="status"></p>
+<hr><br>
+<p id="inbound"></p>
+<hr>
+</body>
+</html>

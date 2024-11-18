@@ -1,0 +1,14 @@
+plugins {
+    id 'java'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+task runMavenMain(type: Exec) {
+    commandLine 'mvnw', 'spring-boot:run'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'com.vonage:sample-serversdk-java-springboot:+'
+    }
+}

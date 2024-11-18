@@ -1,0 +1,18 @@
+project:
+    name: alien-defence-system
+instance:
+    name: dev
+    runtime: java21
+    region: aws.euw1
+    entrypoint:
+        - ./mvnw
+        - spring-boot:run
+    environment:
+        - name: TO_NUMBER
+          value: "44700000000"
+        - name: VONAGE_WHATSAPP_NUMBER
+          value: "14157386102"
+debug:
+    entrypoint:
+        - ./mvnw
+        - spring-boot:run@debug
